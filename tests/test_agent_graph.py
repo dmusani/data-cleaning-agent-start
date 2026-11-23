@@ -77,3 +77,13 @@ def test_report_prompt_explains_removed_rows_not_only_exact_duplicates():
     report_prompt = model.calls[1]
     assert "near-duplicates" in report_prompt
     assert "never say there were no duplicates" in report_prompt.lower()
+
+
+def test_report_prompt_says_outliers_are_capped_not_removed():
+    agent, model = make_agent([GOOD_CODE, REPORT])
+
+    agent.invoke_agent(data_raw=sample_df())
+
+    report_prompt = model.calls[1].lower()
+    assert "capped" in report_prompt
+    assert "not as removed" in report_prompt

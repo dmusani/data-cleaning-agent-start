@@ -14,8 +14,8 @@ Assignment: extend the data cleaning agent with at least two capabilities beyond
 - Must not mangle identifier columns (e.g. `employee_id`) or person names.
 
 ## Approaches considered
-- A. Prompt-only: smallest, but the model works blind.
-- B. Prompt plus richer `get_dataframe_summary` (**chosen**): model sees outlier bounds and text variants; small, testable change.
+- A. Prompt-only (**implemented**, see Amendments): smallest; the generated code computes fences itself at run time.
+- B. Prompt plus richer `get_dataframe_summary` (originally chosen; **superseded by A**, see Amendments): model sees outlier bounds and text variants; small, testable change.
 - C. Deterministic helpers called from the prompt: most reliable, most code, less flexible.
 
 ## Decisions
@@ -33,3 +33,16 @@ Exact summary formatting, how to detect ID-like columns, wording of prompt steps
 
 ## Known risk
 Data round-trips through `to_dict()`, so dtype changes may not survive; check on the messy sample and note any limitation.
+
+## Amendments made during implementation and testing
+These were made after the design above and were not part of the original sign-off.
+
+1. **Approach A (prompt-only) was implemented, not B.** The generated function computes the IQR fences from the data at run time, so `get_dataframe_summary` was not extended. Decision 1 above was not built. Revisit it only if the model keeps picking the wrong columns.
+2. **Step order is now:** drop columns, standardize text, cap outliers, impute, remove duplicates. Outliers are capped before imputation so extreme values do not skew the fill mean, and text is standardized first so categorical modes and duplicates are computed on clean values.
+3. **Text rule:** categorical columns are converted to proper case (e.g. "sales", "SALES" -> "Sales"). The original "merge to the most frequent form" wording was misread by the model (it lowercased everything and restored case for one value only). Side effect: acronyms become `Hr`, `It`. Name and ID-like columns are left alone.
+4. **Column removal rule is explicit:** keep a column only if its missing fraction is 0.40 or less (`data_raw.loc[:, data_raw.isna().mean() <= 0.4]`); `dropna(thresh=...)` is forbidden because it counts non-null values and kept the wrong columns.
+5. **Imputation rules:** assign filled columns back into the DataFrame (an unassigned `fillna()` does nothing), and for columns whose non-null values are all whole numbers, round the fill value before filling (check on `col.dropna()`, because NaN breaks the check).
+6. **Outlier capping order for whole-number columns:** determine "all whole numbers" BEFORE clipping, then clip, then round if whole. Checking after clipping failed because the fence value is fractional. The prompt now gives this exact snippet.
+7. **Only pandas and numpy** may be imported by the generated code (a run imported `sklearn`, which is not a declared dependency).
+8. **Prompt lesson:** the model rewrites the whole function each run, so one rule change can alter unrelated steps. If drift continues, move capping into a tested helper in `utils.py` (approach C).
+9. **Delivered via the interface redesign:** the `user_instructions` text box (decision 4) and `data/messy_sample.csv` (decision 3). Custom instructions override the default steps.

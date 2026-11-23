@@ -373,6 +373,8 @@ def make_lightweight_data_cleaning_agent(
                 Duplicates: the duplicate_rows figures count only exact duplicates in the raw data. If the number of rows
                 decreased by more than the exact duplicates explain, say the extra rows were removed (for example
                 near-duplicates that matched after text cleanup), and never say there were no duplicates when rows decreased.
+                Outliers are capped (clipped) to the IQR fences and their rows are kept; describe them as capped,
+                not as removed, unless the User Instructions say otherwise.
 
                 User Instructions:
                 {user_instructions}

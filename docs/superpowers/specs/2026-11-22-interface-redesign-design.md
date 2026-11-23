@@ -65,3 +65,16 @@ Chart styling, number formatting, exact wording of messages and the report promp
 - dtype changes lost in the `to_dict()` round trip; verify on the messy sample and note any limitation.
 - One extra model call per successful run (cost/latency).
 - The model may reindex or reorder rows, which limits the "cells changed" metric.
+
+## Amendments made during implementation and testing
+These were made after the design was approved and were not part of the original sign-off. The implementation plan (`docs/superpowers/plans/2026-11-22-interface-redesign.md`) was not changed and describes the original scope.
+
+18. **Whole-number outlier fences (refines 13).** For a column whose raw non-null values are all whole numbers, the fences used for the outlier counts are widened outward to whole numbers (floor of the lower, ceiling of the upper). Reason: the cleaner rounds capped values, so a capped 7.25 becomes 7, which would otherwise count as a remaining outlier and produce a false "not fully resolved" report. Columns with decimals keep exact fences.
+19. **`cells_changed` is None when labels were reset (refines 14).** If rows were removed and the cleaned index equals 0..n-1, the labels no longer identify the same rows as in raw (typical after `drop_duplicates().reset_index(drop=True)`), so the metric is None instead of a wrong number. Found in the final review. Cost: also None when only trailing rows were dropped.
+20. **Empty result is an error (extends 12).** A cleaned frame with zero rows or zero columns from a non-empty input is an execution error and enters the retry loop, so the UI cannot report success on an empty table.
+21. **Key hint depends on the key's source (refines 9).** `friendly_error(exc, key_from_env=...)`: a rejected key from the environment/.env says to correct `OPENAI_API_KEY` and restart; a rejected typed key says to re-enter it in the sidebar.
+22. **No delta arrow for zero change.** Metric tiles pass no delta when before equals after.
+23. **Report prompt rules (refines 3).** The report prompt now also says: the duplicate figures count exact duplicates only; if rows fell by more than that, say the extra rows were removed (e.g. near-duplicates that matched after text cleanup) and never claim there were no duplicates when rows decreased; describe outliers as capped, not removed, unless user instructions say otherwise.
+24. **Cleaning prompt changes** (step order, proper-case text rule, whole-number rounding, pandas/numpy only) are recorded in `2026-11-22-outlier-text-cleaning-design.md`.
+25. **Tests.** 50 offline tests. `tests/fakes.py` holds a shared fake chat model. Four run-path app tests were written after the implementation (AppTest cannot upload files, so the uploader and model are patched) and were checked with two deliberate breakages. Real-model behavior was verified manually on `data/messy_sample.csv`.
+26. **Delivered:** README "What's New" section; code merged to `main`.
