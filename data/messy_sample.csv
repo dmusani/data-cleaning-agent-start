@@ -1,0 +1,101 @@
+name,age,salary,department,experience,city,employee_id,notes
+Maria Garcia,37,,Marketing,21,Chicago,E001,
+Ava Lee,27,76000,Sales,22,Boston,E002,
+Tom Nguyen,30,94000, hr  ,8,Chicago,E003,follow up
+Omar Kim,40,70000,it  ,14,Boston,E004,
+Chen Brown,250,83000,Sales,19,chicago,E005,
+Mia Khan,22,88000,IT,9,Chicago,E006,
+Sam Smith,23,99000,Sales,2,Chicago,E007,follow up
+Nina Smith,43,69000,Sales,21,Miami,E008,
+Priya Patel,50,9999999,HR,3,Seattle,E009,
+Noah Doe,58,108000,IT,14,Dallas ,E010,
+Chen Smith,31,48000,HR,18,Boston,E011,
+Lena Doe,56,91000,Sales,18,Chicago,E012,
+Liam Smith,30,,HR,19,Chicago,E013,follow up
+Lena Doe,23,86000,Marketing,4,miami,E014,follow up
+  Zoe Garcia ,,98000,HR,0,Boston,E015,
+Raj Ross,28,,sales  ,25,Dallas,E016,follow up
+Chen Lee,29,110000,it  ,17,Boston ,E017,follow up
+Ella Garcia,-5,82000,Sales,11,Seattle,E018,
+Mia Nguyen,57,,HR,20,Boston,E019,
+Lena Lee,,79000,HR,0,New York,E020,
+Jane Smith,34,50000,HR,,Chicago,E021,
+Nina Kim,27,94000,sales  ,20,Austin,E022,
+Alex Garcia,40,52000,Sales,6,Chicago,E023,follow up
+Lena Brown,33,95000,IT,16,Miami,E024,
+Noah Garcia,52,49000,HR,24,Seattle,E025,
+Ava Smith,27,91000,HR,80,Austin,E026,
+Zoe Khan,31,,Marketing,25,,E027,
+Liam Ross,56,58000,SALES,14,Miami,E028,follow up
+Alex Brown,25,57000,Marketing,24,Austin,E029,
+Alex Khan,40,62000,HR,1,Chicago,E030,
+Maria Smith,26,89000, HR,8,Dallas,E031,
+John Kim,53,98000,IT,5,Miami,E032,
+John Khan,42,87000,sales  ,22,Miami,E033,
+Omar Ross,199,69000,Sales,25,new york,E034,
+Jane Brown,47,101000,Marketing,21,Denver,E035,follow up
+Chen Doe,58,77000,HR,3,Dallas,E036,follow up
+Nina Garcia,55,82000,IT,25,Miami,E037,follow up
+Noah Brown,52,82000,HR,22,Seattle,E038,
+Sam Ross,38,54000,Marketing,18,Seattle,E039,
+  Liam Garcia ,33,94000,MARKETING,8,Dallas,E040,
+Sam Patel,37,106000,Sales,25,Chicago,E041,follow up
+Alex Kim,42,1200, hr  ,11,Austin,E042,
+Liam Smith,26,53000,HR,19,Denver,E043,
+Noah Khan,38,49000,sales  ,,,E044,
+Liam Nguyen,41,51000,IT,15,miami,E045,
+  Jane Garcia ,47,47000,IT,13,Boston,E046,follow up
+Sam Brown,31,46000,HR,25,Boston,E047,
+Raj Garcia,33,106000,Marketing,16,,E048,follow up
+Ava Lee,33,100000,IT,9,Chicago,E049,follow up
+Alex Ross,23,100000, Marketing,25,Denver,E050,follow up
+Noah Doe,37,93000,Sales,17,Seattle ,E051,
+John Khan,40,63000,IT,19,Austin,E052,
+Raj Smith,58,103000,HR,6,Dallas,E053,
+Raj Lee,54,,hr  ,1,Seattle,E054,
+Noah Kim,45,106000,HR,1,Denver,E055,
+Lena Smith,41,50000,Sales,19,Chicago,E056,follow up
+Sam Kim,37,75000, Sales,,New York,E057,
+  Mike Smith ,26,99000, HR,16,Denver,E058,
+Omar Khan,48,108000,Sales,0,chicago ,E059,follow up
+Alex Doe,41,52000,HR,10,New York,E060,
+Sam Ross,29,5000000,HR,7,Austin,E061,
+Tom Brown,,73000,Marketing,8,Seattle,E062,
+Alex Kim,43,104000,Sales,25,denver ,E063,
+Sara Khan,51,93000,Marketing,16,new york,E064,follow up
+Noah Garcia,,67000,IT,14,Austin,E065,
+Mia Smith,52,103000, HR,19,Denver,E066,
+Mia Brown,51,47000, SALES,14,Chicago,E067,follow up
+Tom Kim,,75000,Marketing,8,Seattle,E068,follow up
+Liam Patel,34,71000,HR,1,Dallas ,E069,follow up
+Omar Ross,38,108000,MARKETING,9,Seattle,E070,
+Liam Smith,30,60000,Marketing,7,New York,E071,
+Liam Doe,51,90000,IT,1,Seattle,E072,
+Sam Khan,41,47000,Sales,-3,Denver,E073,follow up
+Mia Patel,34,67000, HR,6,Chicago,E074,
+Ella Smith,23,92000,Sales,1,Dallas,E075,
+Sam Doe,44,101000,Sales,11,Denver,E076,
+Priya Kim,45,57000,IT,20,Seattle,E077,
+Omar Khan,43,67000,HR,1,Boston,E078,
+Zoe Brown,32,76000,HR,21,Austin,E079,
+Priya Doe,45,71000,Marketing,17,Seattle,E080,
+Nina Garcia,40,97000,HR,14,Chicago ,E081,follow up
+Priya Ross,51,,HR,16,Denver,E082,follow up
+Sam Nguyen,28,109000, IT,6,miami,E083,
+Lena Doe,40,66000,IT,10,Seattle,E084,follow up
+Mia Nguyen,32,95000,Marketing,15,boston,E085,
+Mia Ross,30,88000, hr  ,18,,E086,follow up
+Maria Smith,32,,HR,25,Denver,E087,follow up
+Ava Khan,33,95000,Sales,5,Boston,E088,follow up
+Sam Kim,36,50000, Marketing,24,Dallas,E089,
+John Kim,29,105000,Sales,8,New York,E090,
+Chen Smith,31,48000,HR,18, boston,E011,follow up
+Jane Smith,34,50000,HR,, chicago,E021,
+Maria Smith,26,89000,HR,8, dallas,E031,
+Sam Patel,37,106000,SALES,25, chicago,E041,follow up
+  Chen Garcia ,37,98000,Marketing,7,New York,E095,
+  Sam Ross ,48,99000,Marketing,1,Austin,E096,
+Jane Kim,53,63000,Marketing,20,Miami,E097,follow up
+Tom Lee,44,66000,Sales,8,Chicago,E098,follow up
+Zoe Brown,24,53000,IT,13,miami ,E099,
+Ella Ross,31,87000,HR,0,Austin,E100,

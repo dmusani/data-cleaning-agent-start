@@ -1,16 +1,19 @@
 # Libraries
-from typing import TypedDict
+from typing import Optional, TypedDict
+import json
 import os
 import logging
 
 import pandas as pd
 
 from langchain.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 from langgraph.types import Checkpointer
 from langgraph.graph import StateGraph, END
 
 from .utils import (
     PythonOutputParser,
+    compute_quality_metrics,
     get_dataframe_summary,
     execute_agent_code,
     fix_agent_code,
@@ -53,7 +56,7 @@ class LightweightDataCleaningAgent:
     def __init__(
         self, 
         model, 
-        log=False, 
+        log=True, 
         log_path=None, 
         file_name="data_cleaner.py", 
         function_name="data_cleaner",
@@ -114,8 +117,43 @@ class LightweightDataCleaningAgent:
         Retrieves the cleaned data stored after running invoke_agent.
         """
         if self.response:
-            return pd.DataFrame(self.response.get("data_cleaned"))
-        
+            cleaned = self.response.get("data_cleaned")
+            if cleaned is not None:
+                return pd.DataFrame(cleaned)
+        return None
+
+    def get_quality_metrics(self) -> Optional[dict]:
+        """
+        Retrieves the before/after quality metrics (None if unavailable).
+        """
+        if self.response:
+            return self.response.get("quality_metrics")
+        return None
+
+    def get_change_summary(self) -> Optional[str]:
+        """
+        Retrieves the plain-language change report (None if unavailable).
+        """
+        if self.response:
+            return self.response.get("change_summary")
+        return None
+
+    def get_error(self) -> Optional[str]:
+        """
+        Retrieves the last execution error (None if the run succeeded).
+        """
+        if self.response:
+            return self.response.get("data_cleaner_error")
+        return None
+
+    def get_retry_count(self) -> Optional[int]:
+        """
+        Retrieves how many fix attempts were used.
+        """
+        if self.response:
+            return self.response.get("retry_count")
+        return None
+
     def get_data_raw(self):
         """
         Retrieves the raw data.
@@ -134,9 +172,9 @@ class LightweightDataCleaningAgent:
 # Agent Factory Function
 
 def make_lightweight_data_cleaning_agent(
-    model, 
-    log=False, 
-    log_path=None, 
+    model,
+    log=True,
+    log_path=None,
     file_name="data_cleaner.py",
     function_name="data_cleaner",
     checkpointer: Checkpointer = None
@@ -185,6 +223,8 @@ def make_lightweight_data_cleaning_agent(
         data_cleaner_error: str
         max_retries: int
         retry_count: int
+        quality_metrics: dict
+        change_summary: str
 
     
     def create_data_cleaner_code(state: GraphState):
@@ -203,10 +243,30 @@ def make_lightweight_data_cleaning_agent(
             template="""
             You are a Data Cleaning Agent. Create a {function_name}() function to clean the data.
 
-            Basic Cleaning Steps to implement:
-            1. Remove columns with more than 40% missing values
-            2. Impute missing values (mean for numeric, mode for categorical)
-            3. Remove duplicate rows
+            Basic Cleaning Steps to implement (in this order):
+            1. Remove columns with more than 40% missing values:
+                - keep a column only if its fraction of missing values is 0.40 or less, e.g. data_raw.loc[:, data_raw.isna().mean() <= 0.4]
+                - do NOT use dropna(thresh=...), which counts non-null values and keeps the wrong columns
+            2. Standardize text in string columns:
+                - strip leading/trailing whitespace and collapse repeated spaces
+                - for categorical columns (few distinct values, like department or city),
+                convert values to proper case (e.g. "sales", "SALES" -> "Sales")
+                - do NOT change casing of name columns or ID-like columns (e.g. employee_id)
+            3. Handle outliers in numeric columns (before imputation, so outliers do not skew the mean):
+                - compute IQR fences (Q1 - 1.5*IQR, Q3 + 1.5*IQR) per column
+                - cap values outside the fences (clip), do not drop rows
+                - follow this exact order for each numeric column, checking for whole numbers BEFORE clipping:
+                    is_whole = data_cleaned[col].dropna().mod(1).eq(0).all()
+                    data_cleaned[col] = data_cleaned[col].clip(lower_fence, upper_fence)
+                    if is_whole:
+                        data_cleaned[col] = data_cleaned[col].round()
+                - skip ID-like columns
+            4. Impute missing values (mean for numeric, mode for categorical):
+                - assign every imputed column back into the DataFrame (e.g. data_cleaned[col] = data_cleaned[col].fillna(value)); a fillna() result that is not assigned has no effect
+                - if a numeric column's existing non-null values are all whole numbers (check on col.dropna(), because NaN breaks the check), round the fill value to a whole number before filling
+            5. Remove duplicate rows
+
+            If User Instructions conflict with the basic steps, the User Instructions win.
 
             User Instructions:
             {user_instructions}
@@ -222,6 +282,7 @@ def make_lightweight_data_cleaning_agent(
                 # Your cleaning code here
                 return data_cleaned
 
+            Important: Use only pandas and numpy; do not import any other libraries.
             Important: Ensure fit_transform() outputs are flattened with .ravel() when assigning to DataFrame columns.
             """,
             input_variables=["user_instructions", "all_datasets_summary", "function_name"]
@@ -287,14 +348,60 @@ def make_lightweight_data_cleaning_agent(
             function_name=state.get("data_cleaner_function_name"),
         )
 
+    def summarize_changes(state: GraphState):
+        """
+        Compute before/after quality metrics and ask the model to narrate them.
+        Never raises: a failure here must not fail a successful cleaning run.
+        """
+        metrics = None
+        summary = None
+        try:
+            raw_df = pd.DataFrame.from_dict(state.get("data_raw"))
+            cleaned_df = pd.DataFrame.from_dict(state.get("data_cleaned"))
+            metrics = compute_quality_metrics(raw_df, cleaned_df)
+        except Exception as e:
+            logger.warning(f"Could not compute quality metrics: {e}")
+
+        if metrics is not None:
+            summary_prompt = PromptTemplate(
+                template="""
+                You are a Data Cleaning Agent. Summarize what the cleaning changed, for a non-technical reader.
+
+                Write 3-6 short bullet points, each starting with "- ".
+                Use ONLY facts and numbers that appear in the metrics below; do not invent anything.
+                If an outliers "after" count is greater than 0, say those outliers are not fully resolved.
+                Duplicates: the duplicate_rows figures count only exact duplicates in the raw data. If the number of rows
+                decreased by more than the exact duplicates explain, say the extra rows were removed (for example
+                near-duplicates that matched after text cleanup), and never say there were no duplicates when rows decreased.
+
+                User Instructions:
+                {user_instructions}
+
+                Quality metrics (JSON):
+                {metrics}
+                """,
+                input_variables=["user_instructions", "metrics"],
+            )
+            try:
+                text = (summary_prompt | model | StrOutputParser()).invoke({
+                    "user_instructions": state.get("user_instructions") or "None (basic cleaning steps only).",
+                    "metrics": json.dumps(metrics, default=str),
+                })
+                summary = text.strip() or None
+            except Exception as e:
+                logger.warning(f"Could not generate change summary: {e}")
+
+        return {"quality_metrics": metrics, "change_summary": summary}
+
     # Build the workflow graph
     workflow = StateGraph(GraphState)
-    
+
     # Add nodes
     workflow.add_node("create_data_cleaner_code", create_data_cleaner_code)
     workflow.add_node("execute_data_cleaner_code", execute_data_cleaner_code)
     workflow.add_node("fix_data_cleaner_code", fix_data_cleaner_code)
-    
+    workflow.add_node("summarize_changes", summarize_changes)
+
     # Set entry point
     workflow.set_entry_point("create_data_cleaner_code")
     
@@ -302,24 +409,28 @@ def make_lightweight_data_cleaning_agent(
     workflow.add_edge("create_data_cleaner_code", "execute_data_cleaner_code")
     workflow.add_edge("fix_data_cleaner_code", "execute_data_cleaner_code")
     
-    # Conditional routing: retry with fixes if error occurs and retries remain
+    # Conditional routing: summarize on success; on error, retry with fixes
+    # while retries remain, otherwise stop.
     def should_retry(state):
-        has_error = state.get("data_cleaner_error") is not None
+        if state.get("data_cleaner_error") is None:
+            return "summarize"
         can_retry = (
             state.get("retry_count") is not None
             and state.get("max_retries") is not None
             and state["retry_count"] < state["max_retries"]
         )
-        return "fix_code" if (has_error and can_retry) else "end"
-    
+        return "fix_code" if can_retry else "end"
+
     workflow.add_conditional_edges(
         "execute_data_cleaner_code",
         should_retry,
         {
             "fix_code": "fix_data_cleaner_code",
+            "summarize": "summarize_changes",
             "end": END,
         },
     )
+    workflow.add_edge("summarize_changes", END)
     
     # Compile the workflow
     app = workflow.compile(checkpointer=checkpointer, name=AGENT_NAME)
