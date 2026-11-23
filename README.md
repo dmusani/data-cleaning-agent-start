@@ -184,9 +184,46 @@ Generated code that raises, has a syntax error, is missing the cleaning function
 poetry run pytest
 ```
 
-The suite (50 tests) runs offline with a fake chat model, so it makes no API calls and costs nothing. It covers the metrics, the failure paths, the agent graph and the Streamlit app. `data/messy_sample.csv` is a 100-row dataset with injected outliers, whitespace and case variants, missing values, near-duplicates and a mostly empty column. Use it to try the app.
+The suite (51 tests) runs offline with a fake chat model, so it makes no API calls and costs nothing. It covers the metrics, the failure paths, the agent graph and the Streamlit app. `data/messy_sample.csv` is a 100-row dataset with injected outliers, whitespace and case variants, missing values, near-duplicates and a mostly empty column. Use it to try the app.
 
 **Note**: because the cleaning code is written by an LLM, its exact form can vary between runs. The metrics and the Quality tab are the way to check what a run actually did.
+
+## Run with Docker
+
+The app can run in a container, so you don't need Python or Poetry installed. You only need [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or another Docker engine) running.
+
+### Build and run
+
+```bash
+docker build -t data-cleaning-agent .
+
+# Option A: pass your .env at runtime (the key is never baked into the image)
+docker run --rm -p 8501:8501 --env-file .env data-cleaning-agent
+
+# Option B: no key; the app asks for it in the sidebar
+docker run --rm -p 8501:8501 data-cleaning-agent
+```
+
+Then open http://localhost:8501 (not the `0.0.0.0` address printed in the container logs). Press `Ctrl+C` to stop it. If port 8501 is already in use, map another port, for example `-p 8502:8501`, and open that port.
+
+### Make shortcuts
+
+If you have `make`, these wrap the commands above:
+
+| Command | What it does |
+|---|---|
+| `make docker` | Builds the image, replaces any old container, and starts a new one in the background on port 8501 using your `.env` |
+| `make stop` | Stops and removes the container |
+| `make run` | Runs the app locally with Poetry (no Docker) |
+
+`make docker` requires a `.env` file with a real `OPENAI_API_KEY`. It also mounts the project's `logs/` folder into the container, so the generated cleaning code (`logs/data_cleaner.py`) is still there after the container is removed. With plain `docker run`, add `-v "$(pwd)/logs:/app/logs"` to get the same effect.
+
+### Notes
+
+- The image is based on `python:3.11-slim`, installs only runtime dependencies (no test tools), and runs as a non-root user.
+- `.dockerignore` keeps `.env`, `.git`, `logs/`, `docs/` and `tests/` out of the image.
+- The container has a health check. `docker ps` shows `(healthy)` once the app is up, and `curl localhost:8501/_stcore/health` prints `ok`.
+- View the app's output with `docker logs -f data-cleaning-agent-app` when started via `make docker`.
 
 ## Project Structure
 
@@ -203,6 +240,9 @@ data-cleaning-agent/
 │   ├── sample_data.csv
 │   └── messy_sample.csv        # Deliberately messy demo dataset
 ├── docs/superpowers/           # Design specs and implementation plans
+├── Dockerfile                  # Container image for the Streamlit app
+├── .dockerignore               # Keeps secrets and dev files out of the image
+├── Makefile                    # Shortcuts: run, docker, stop
 ├── pyproject.toml              # Dependencies configuration
 ├── poetry.lock                 # Locked dependency versions
 └── README.md

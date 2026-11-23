@@ -1,0 +1,17 @@
+# Secrets: never bake these into the image
+.env
+
+# VCS and tooling
+.git
+.gitignore
+.superpowers
+.pytest_cache
+.venv
+__pycache__
+*.pyc
+.DS_Store
+
+# Not needed at runtime
+logs
+docs
+tests
